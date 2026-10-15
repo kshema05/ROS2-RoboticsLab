@@ -1,2983 +1,702 @@
-# 🤖 ROS 2 Robotics Workshop
+# gazibo-rivzz_student_frendly
+# 🤖 ROS 2 Humble · TurtleBot3 · Gazebo · RViz2 — Student Guide
 
-## From ROS 2 Fundamentals to TurtleBot3, Gazebo & SLAM
+Build a simulated TurtleBot3 robot that drives around an indoor world while you watch its **LiDAR, odometry, map and TF frames** live in RViz2. Later you can add **SLAM** (mapping) and **Nav2** (autonomous navigation).
 
-> **A complete hands-on 2-day ROS 2 workshop for engineering students**
->
-> Learn ROS 2 by building, inspecting, controlling and debugging robotic systems — starting with `turtlesim` and progressing to TurtleBot3 simulation, LiDAR, TF and SLAM.
-
----
-
-<p align="center">
-
-![ROS 2](https://img.shields.io/badge/ROS%202-Humble-blue?style=for-the-badge)
-![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04-orange?style=for-the-badge)
-![Python](https://img.shields.io/badge/Python-3.x-yellow?style=for-the-badge)
-![Gazebo](https://img.shields.io/badge/Gazebo-Simulation-lightgrey?style=for-the-badge)
-![License](https://img.shields.io/badge/Workshop-Educational-green?style=for-the-badge)
-
-</p>
+> ⏱️ **Time:** about 15–25 minutes (mostly downloads). **Everyone who follows these steps gets the same result.**
 
 ---
 
-# 📚 Table of Contents
+## 📦 How this guide works
 
-* [About This Workshop](#-about-this-workshop)
-* [Learning Philosophy](#-learning-philosophy)
-* [What You Will Learn](#-what-you-will-learn)
-* [Prerequisites](#-prerequisites)
-* [System Requirements](#-system-requirements)
-* [ROS 2 Architecture](#-ros-2-architecture)
-* [Workshop Roadmap](#-workshop-roadmap)
-* [Day 1](#-day-1--ros-2-fundamentals)
+This is **one single file**. You do not download anything else. You will:
 
-  * [ROS 2 Introduction](#1-ros-2-introduction)
-  * [Environment Setup](#2-ros-2-environment)
-  * [First ROS 2 Node](#3-your-first-ros-2-node)
-  * [Nodes](#4-understanding-nodes)
-  * [Topics](#5-topics)
-  * [Publishing](#6-publishing-to-a-topic)
-  * [Services](#7-services)
-  * [Parameters](#8-parameters)
-  * [Actions](#9-actions)
-  * [Workspace](#10-workspaces-packages-and-colcon)
-  * [Debugging](#11-ros-2-debugging)
-  * [Day 1 Challenge](#12-day-1-challenge)
-* [Day 2](#-day-2--ros-2-programming-turtlebot3-and-slam)
+1. **Paste one block** into the terminal → it creates the setup script.
+2. **Paste one block** into the terminal → it creates the check script.
+3. Run `setup` once, then `check` after starting Gazebo.
 
-  * [Python ROS 2 Node](#13-create-your-first-python-ros-2-node)
-  * [Publisher and Subscriber](#14-publisher--subscriber)
-  * [Robot Control](#15-basic-robot-control)
-  * [TurtleBot3](#16-turtlebot3)
-  * [Gazebo](#17-gazebo-simulation)
-  * [RViz2](#18-rviz2)
-  * [TF](#19-tf--coordinate-frames)
-  * [LiDAR](#20-lidar-and-laserscan)
-  * [SLAM](#21-slam)
-  * [Map Saving](#22-save-the-map)
-  * [Navigation2](#23-introduction-to-nav2)
-  * [Final Challenge](#24-final-project)
-* [ROS 2 Command Cheat Sheet](#-ros-2-command-cheat-sheet)
-* [Troubleshooting](#-troubleshooting)
-* [Concept Summary](#-concept-summary)
-* [Next Steps](#-what-to-learn-next)
-* [Official Resources](#-official-resources)
+| Script (created by you in Step 2) | What it does |
+| --- | --- |
+| `setup_turtlebot3_sim.sh` | **One command** that installs and configures everything |
+| `check_simulation.sh` | **One command** that proves the simulation really works (it even drives the robot for you) |
 
 ---
 
-# 🎯 About This Workshop
+## 1️⃣ Requirements
 
-This workshop is designed to teach the **fundamentals of ROS 2 through practical implementation**.
+| Item | Needed |
+| --- | --- |
+| OS | **Ubuntu 22.04** (native) or **WSL2 + Ubuntu 22.04** on Windows 10/11 |
+| Disk | ~10 GB free |
+| RAM | 8 GB minimum |
+| Internet | During installation only |
+| Account | A normal user with `sudo` rights |
 
-Instead of learning ROS 2 only through theory, we follow a progressive robotics workflow:
+### 🪟 Windows / WSL2 users — do this first (3 minutes)
+
+1. In **Windows PowerShell** update WSL, then restart it:
+   ```powershell
+   wsl --update
+   wsl --shutdown
+   ```
+2. *(Recommended)* give WSL more memory. Create `C:\Users\<YourName>\.wslconfig`:
+   ```ini
+   [wsl2]
+   memory=8GB
+   processors=4
+   ```
+   then run `wsl --shutdown` again.
+3. Open **Ubuntu 22.04** (or VS Code → *WSL: Ubuntu-22.04*). All commands below run **inside Ubuntu**.
+4. Keep your files in the Linux home (`~`), **not** in `/mnt/c/...` (very slow).
+
+---
+
+## 2️⃣ Install — one command
+
+### Step A — create a working folder
+
+```bash
+mkdir -p ~/tb3_sim && cd ~/tb3_sim
+```
+
+### Step B — create the setup script (copy → paste → Enter)
+
+Click the copy button of the block below, paste it in the Ubuntu terminal and press **Enter**. Nothing is installed yet; it only creates the file `setup_turtlebot3_sim.sh`.
+
+<details>
+<summary><b>👉 Click to open: setup script block</b></summary>
+
+```bash
+cat > ~/tb3_sim/setup_turtlebot3_sim.sh << 'TB3_SETUP_END'
+#!/usr/bin/env bash
+# =============================================================================
+#  TurtleBot3 + Gazebo + RViz2 : one-shot setup
+#  Target : Ubuntu 22.04 (native or WSL2)  +  ROS 2 Humble
+#  Usage  : bash setup_turtlebot3_sim.sh          (do NOT use sudo)
+#  Safe to run again: every step checks what already exists.
+# =============================================================================
+set -eo pipefail
+
+BEGIN_MARK="#TB3SIM-BEGIN"
+END_MARK="#TB3SIM-END"
+SYS_MODELS="${SYS_MODELS:-/usr/share/gazebo-11/models}"
+USER_MODELS="${USER_MODELS:-$HOME/.gazebo/models}"
+BASHRC="${BASHRC:-$HOME/.bashrc}"
+
+say()  { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
+ok()   { printf '\033[1;32m  ✔ %s\033[0m\n' "$*"; }
+warn() { printf '\033[1;33m  ! %s\033[0m\n' "$*"; }
+die()  { printf '\033[1;31m  ✘ %s\033[0m\n' "$*" >&2; exit 1; }
+
+# -----------------------------------------------------------------------------
+check_system() {
+  say "Step 1/5  Checking your system"
+  [ "$(id -u)" -ne 0 ] || die "Do not run this with sudo. Run:  bash setup_turtlebot3_sim.sh"
+
+  . /etc/os-release
+  [ "${VERSION_ID:-}" = "22.04" ] || die "This guide needs Ubuntu 22.04 (you have ${PRETTY_NAME:-unknown})."
+  ok "Ubuntu 22.04"
+
+  if grep -qi microsoft /proc/version 2>/dev/null; then
+    IS_WSL=1; ok "Running inside WSL2"
+  else
+    IS_WSL=0; ok "Native Ubuntu"
+  fi
+
+  case "$(pwd)" in
+    /mnt/*) warn "You are working inside /mnt/... (Windows disk). This is slow. Copy this folder to your Linux home (~) later." ;;
+  esac
+
+  echo "  (sudo may ask for your Ubuntu password – nothing shows while you type)"
+  sudo -v || die "sudo failed."
+}
+
+# -----------------------------------------------------------------------------
+install_ros_if_missing() {
+  say "Step 2/5  ROS 2 Humble"
+  if [ -f /opt/ros/humble/setup.bash ]; then
+    ok "ROS 2 Humble already installed"
+    return
+  fi
+  warn "ROS 2 Humble was not found."
+  read -r -p "  Install ros-humble-desktop now? (about 3 GB download) [y/N] " ans
+  [ "$ans" = "y" ] || [ "$ans" = "Y" ] || die "Install ROS 2 Humble first: https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html"
+
+  sudo apt update
+  sudo apt install -y locales software-properties-common curl
+  sudo locale-gen en_US en_US.UTF-8
+  sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+  sudo add-apt-repository universe -y
+  sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
+       -o /usr/share/keyrings/ros-archive-keyring.gpg
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo "$UBUNTU_CODENAME") main" \
+       | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+  sudo apt update
+  sudo apt install -y ros-humble-desktop
+  ok "ROS 2 Humble installed"
+}
+
+# -----------------------------------------------------------------------------
+install_packages() {
+  say "Step 3/5  Installing Gazebo, TurtleBot3, SLAM and Nav2 (apt – no compiling)"
+  sudo apt update
+  sudo apt install -y \
+    psmisc mesa-utils \
+    python3-colcon-common-extensions \
+    ros-humble-gazebo-ros-pkgs \
+    ros-humble-turtlebot3 \
+    ros-humble-turtlebot3-simulations \
+    ros-humble-turtlebot3-gazebo \
+    ros-humble-turtlebot3-teleop \
+    ros-humble-turtlebot3-bringup \
+    ros-humble-turtlebot3-navigation2 \
+    ros-humble-slam-toolbox \
+    ros-humble-navigation2 \
+    ros-humble-nav2-bringup \
+    ros-humble-tf2-tools
+  ok "Packages installed"
+}
+
+# -----------------------------------------------------------------------------
+# Gazebo needs a floor (ground_plane) and a light (sun). If they cannot be found,
+# the robot falls through the world forever. This guarantees both exist, offline.
+install_local_models() {
+  say "Step 4/5  Making sure Gazebo has a floor and a light"
+
+  if [ -f "$SYS_MODELS/ground_plane/model.sdf" ]; then
+    ok "ground_plane found in $SYS_MODELS"
+  else
+    warn "ground_plane missing in $SYS_MODELS – creating a local copy"
+    mkdir -p "$USER_MODELS/ground_plane"
+    cat > "$USER_MODELS/ground_plane/model.config" << 'EOF'
+<?xml version="1.0"?>
+<model>
+  <name>Ground Plane</name>
+  <version>1.0</version>
+  <sdf version="1.6">model.sdf</sdf>
+  <description>Simple ground plane</description>
+</model>
+EOF
+    cat > "$USER_MODELS/ground_plane/model.sdf" << 'EOF'
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name="ground_plane">
+    <static>true</static>
+    <link name="link">
+      <collision name="collision">
+        <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+        <surface><friction><ode><mu>100</mu><mu2>50</mu2></ode></friction></surface>
+      </collision>
+      <visual name="visual">
+        <cast_shadows>false</cast_shadows>
+        <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+        <material>
+          <script>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+            <name>Gazebo/Grey</name>
+          </script>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>
+EOF
+    ok "Created $USER_MODELS/ground_plane"
+  fi
+
+  if [ -f "$SYS_MODELS/sun/model.sdf" ]; then
+    ok "sun found in $SYS_MODELS"
+  else
+    warn "sun missing in $SYS_MODELS – creating a local copy"
+    mkdir -p "$USER_MODELS/sun"
+    cat > "$USER_MODELS/sun/model.config" << 'EOF'
+<?xml version="1.0"?>
+<model>
+  <name>Sun</name>
+  <version>1.0</version>
+  <sdf version="1.6">model.sdf</sdf>
+  <description>Directional light</description>
+</model>
+EOF
+    cat > "$USER_MODELS/sun/model.sdf" << 'EOF'
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <light type="directional" name="sun">
+    <cast_shadows>true</cast_shadows>
+    <pose>0 0 10 0 0 0</pose>
+    <diffuse>0.8 0.8 0.8 1</diffuse>
+    <specular>0.2 0.2 0.2 1</specular>
+    <attenuation>
+      <range>1000</range>
+      <constant>0.9</constant>
+      <linear>0.01</linear>
+      <quadratic>0.001</quadratic>
+    </attenuation>
+    <direction>-0.5 0.1 -0.9</direction>
+  </light>
+</sdf>
+EOF
+    ok "Created $USER_MODELS/sun"
+  fi
+}
+
+# -----------------------------------------------------------------------------
+write_bashrc() {
+  say "Step 5/5  Saving environment settings to ~/.bashrc"
+  touch "$BASHRC"
+  # remove any previous block written by this script (keeps the script re-runnable)
+  sed -i "/^${BEGIN_MARK}\$/,/^${END_MARK}\$/d" "$BASHRC"
+
+  {
+    echo "$BEGIN_MARK"
+    echo "# TurtleBot3 simulation environment (managed by setup_turtlebot3_sim.sh)"
+    echo 'source /opt/ros/humble/setup.bash'
+    echo 'export TURTLEBOT3_MODEL=burger'
+    echo '# Gazebo built-in model/resource/plugin paths (floor, sun, materials)'
+    echo '[ -f /usr/share/gazebo/setup.sh ] && source /usr/share/gazebo/setup.sh'
+    echo '# Must come AFTER setup.sh: never try to download models from the internet'
+    echo 'export GAZEBO_MODEL_DATABASE_URI=""'
+    echo "export GAZEBO_MODEL_PATH=\"\${GAZEBO_MODEL_PATH:+\$GAZEBO_MODEL_PATH:}$USER_MODELS\""
+    if [ "${IS_WSL:-0}" = "1" ]; then
+      echo '# WSL2: software rendering avoids a black Gazebo window'
+      echo 'export LIBGL_ALWAYS_SOFTWARE=1'
+    fi
+    echo "$END_MARK"
+  } >> "$BASHRC"
+  ok "Settings written to $BASHRC"
+}
+
+# -----------------------------------------------------------------------------
+verify() {
+  say "Final check"
+  if bash -c 'source /opt/ros/humble/setup.bash && ros2 pkg prefix turtlebot3_gazebo >/dev/null 2>&1'; then
+    ok "turtlebot3_gazebo is installed"
+  else
+    die "turtlebot3_gazebo was not found. Scroll up for apt errors."
+  fi
+  bash -c 'source /opt/ros/humble/setup.bash && ros2 pkg prefix slam_toolbox >/dev/null 2>&1' && ok "slam_toolbox is installed"
+  bash -c 'source /opt/ros/humble/setup.bash && ros2 pkg prefix nav2_bringup >/dev/null 2>&1' && ok "nav2_bringup is installed"
+
+  cat << 'EOF'
+
+--------------------------------------------------------------------
+  SETUP COMPLETE 🎉
+
+  NEXT:  close ALL terminals, open a NEW one, and run
+
+      bash check_simulation.sh      (after Gazebo is running – see README)
+
+  Start the simulation with:
+
+      killall -9 gzserver gzclient 2>/dev/null
+      ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
+--------------------------------------------------------------------
+EOF
+}
+
+main() {
+  check_system
+  install_ros_if_missing
+  install_packages
+  install_local_models
+  write_bashrc
+  verify
+}
+
+# run main only when executed (not when sourced for testing)
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  main "$@"
+fi
+TB3_SETUP_END
+chmod +x ~/tb3_sim/setup_turtlebot3_sim.sh
+echo "Created ~/tb3_sim/setup_turtlebot3_sim.sh"
+```
+
+</details>
+
+### Step C — create the check script (copy → paste → Enter)
+
+<details>
+<summary><b>👉 Click to open: check script block</b></summary>
+
+```bash
+cat > ~/tb3_sim/check_simulation.sh << 'TB3_CHECK_END'
+#!/usr/bin/env bash
+# =============================================================================
+#  Checks that the TurtleBot3 simulation is REALLY working.
+#  Run it in a NEW terminal while Gazebo (Terminal 1) is running:
+#       bash check_simulation.sh
+#  It drives the robot ~40 cm forward and back automatically.
+# =============================================================================
+set +e
+source /opt/ros/humble/setup.bash 2>/dev/null || { echo "ROS 2 Humble not found. Run setup_turtlebot3_sim.sh first."; exit 1; }
+
+PASS=0; FAIL=0
+good() { printf '\033[1;32m  PASS\033[0m  %s\n' "$*"; PASS=$((PASS+1)); }
+bad()  { printf '\033[1;31m  FAIL\033[0m  %s\n' "$*"; FAIL=$((FAIL+1)); }
+hint() { printf '        \033[0;33m→ %s\033[0m\n' "$*"; }
+
+get_pos() {  # $1 = x | y | z
+  timeout 8 ros2 topic echo /odom --once --field "pose.pose.position.$1" 2>/dev/null | head -n1
+}
+
+echo
+echo "TurtleBot3 simulation check"
+echo "---------------------------"
+
+# 1. Gazebo server
+if pgrep -x gzserver >/dev/null; then
+  good "Gazebo server (gzserver) is running"
+else
+  bad "Gazebo is not running"
+  hint "Terminal 1:  killall -9 gzserver gzclient 2>/dev/null; ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py"
+  echo; echo "Result: $PASS passed, $FAIL failed"; exit 1
+fi
+
+# 2. Topics
+TOPICS=$(timeout 8 ros2 topic list 2>/dev/null)
+for t in /cmd_vel /odom /scan /tf; do
+  if echo "$TOPICS" | grep -qx "$t"; then good "Topic $t exists"; else bad "Topic $t is missing"; hint "The robot was not spawned. Restart Gazebo (see README → Troubleshooting)."; fi
+done
+
+# 3. LiDAR data
+if timeout 8 ros2 topic echo /scan --once --qos-reliability best_effort >/dev/null 2>&1; then
+  good "LiDAR (/scan) is publishing data"
+else
+  bad "No LiDAR data on /scan"
+fi
+
+# 4. Floor test (robot must NOT be falling)
+Z=$(get_pos z)
+if [ -z "$Z" ]; then
+  bad "No odometry data on /odom"
+  Z=""
+elif awk -v z="$Z" 'BEGIN{exit !(z>-0.5 && z<0.5)}'; then
+  good "Robot is standing on the floor (z = $Z)"
+else
+  bad "Robot is FALLING through the world (z = $Z)"
+  hint "Gazebo has no floor. Re-run: bash setup_turtlebot3_sim.sh   then restart Gazebo."
+fi
+
+# 5. Movement test (only if the robot stands on the floor)
+if [ -n "$Z" ] && awk -v z="$Z" 'BEGIN{exit !(z>-0.5 && z<0.5)}'; then
+  X0=$(get_pos x)
+  echo "  ...driving forward for 3 seconds"
+  timeout 3 ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.15}, angular: {z: 0.0}}" >/dev/null 2>&1
+  ros2 topic pub --once /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.0}, angular: {z: 0.0}}" >/dev/null 2>&1
+  sleep 1
+  X1=$(get_pos x)
+  if [ -n "$X0" ] && [ -n "$X1" ] && awk -v a="$X0" -v b="$X1" 'BEGIN{d=b-a; if(d<0)d=-d; exit !(d>0.1)}'; then
+    good "Robot moved (x: $X0 → $X1)"
+  else
+    bad "Robot did not move (x: $X0 → $X1)"
+    hint "Is Gazebo paused? Press the ▶ button at the bottom of the Gazebo window."
+  fi
+  echo "  ...driving back"
+  timeout 3 ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: -0.15}, angular: {z: 0.0}}" >/dev/null 2>&1
+  ros2 topic pub --once /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.0}, angular: {z: 0.0}}" >/dev/null 2>&1
+fi
+
+echo "---------------------------"
+if [ "$FAIL" -eq 0 ]; then
+  printf '\033[1;32mResult: ALL %d CHECKS PASSED 🎉  Your simulation works.\033[0m\n' "$PASS"
+  exit 0
+else
+  printf '\033[1;31mResult: %d passed, %d FAILED.  Read the → hints above, or README → Troubleshooting.\033[0m\n' "$PASS" "$FAIL"
+  exit 1
+fi
+TB3_CHECK_END
+chmod +x ~/tb3_sim/check_simulation.sh
+echo "Created ~/tb3_sim/check_simulation.sh"
+```
+
+</details>
+
+Confirm both files exist:
+
+```bash
+ls ~/tb3_sim        # check_simulation.sh  setup_turtlebot3_sim.sh
+```
+
+### Step D — run the setup script
+
+```bash
+cd ~/tb3_sim
+bash setup_turtlebot3_sim.sh
+```
+
+- Enter your Ubuntu password if asked (nothing is shown while typing).
+- If ROS 2 Humble is missing, the script offers to install it. Answer `y`.
+- Wait for **`SETUP COMPLETE 🎉`**.
+
+### Step E — close ALL terminals, then open a new one
+
+The new settings are only loaded by **new** terminals. Check:
+
+```bash
+echo $ROS_DISTRO          # humble
+echo $TURTLEBOT3_MODEL    # burger
+```
+
+### 🔍 What the setup script does (so nothing is magic)
+
+1. Checks Ubuntu 22.04 and detects WSL2.
+2. Installs ROS 2 Humble if you agree.
+3. Installs by `apt`: Gazebo-ROS, TurtleBot3 (simulation, teleop, bringup, navigation2), SLAM Toolbox, Nav2, TF tools. **No compiling needed.**
+4. Makes sure Gazebo has a **floor (`ground_plane`) and a light (`sun`)**. If they cannot be found, it creates them offline in `~/.gazebo/models`. *(Without a floor the robot falls forever and you see nothing.)*
+5. Adds this block to `~/.bashrc` (you can re-run the script safely, the block is replaced, not duplicated):
+   ```bash
+   source /opt/ros/humble/setup.bash
+   export TURTLEBOT3_MODEL=burger
+   source /usr/share/gazebo/setup.sh              # Gazebo model/resource paths
+   export GAZEBO_MODEL_DATABASE_URI=""            # never download models (prevents long hangs)
+   export GAZEBO_MODEL_PATH=...:$HOME/.gazebo/models
+   export LIBGL_ALWAYS_SOFTWARE=1                 # WSL2 only: avoids a black Gazebo window
+   ```
+
+---
+
+## 3️⃣ Run the simulation (3 terminals)
+
+Open **3 terminals** (in VS Code use the **+** button). Start them **in this order** and wait for each ✅ before continuing.
 
 ```text
-ROS 2 Fundamentals
-        ↓
-turtlesim
-        ↓
-Nodes
-        ↓
-Topics
-        ↓
-Services
-        ↓
-Parameters
-        ↓
-Actions
-        ↓
-Packages
-        ↓
-colcon
-        ↓
-Python ROS 2 Node
-        ↓
-TurtleBot3
-        ↓
-Gazebo
-        ↓
-LiDAR
-        ↓
-TF
-        ↓
-SLAM
-        ↓
-Mapping
-        ↓
-Navigation2
+Terminal 1 → Gazebo      Terminal 2 → RViz2      Terminal 3 → Keyboard teleop
+       └────────── ROS 2 topics: /scan  /odom  /tf  /cmd_vel ──────────┘
 ```
 
-The objective is not simply to memorize commands.
+### 🖥️ Terminal 1 — Gazebo
 
-The objective is to understand:
-
-> **How software components communicate inside a robot.**
-
----
-
-# 🧠 Learning Philosophy
-
-Every concept follows this pattern:
-
-```text
-Understand
-    ↓
-Observe
-    ↓
-Run
-    ↓
-Inspect
-    ↓
-Modify
-    ↓
-Build
-    ↓
-Debug
-```
-
-For example, instead of simply saying:
-
-> A ROS 2 topic is a communication mechanism.
-
-We actually run:
-
-```bash
-ros2 topic list
-```
-
-Then:
-
-```bash
-ros2 topic echo /turtle1/pose
-```
-
-Then move the turtle.
-
-Then inspect:
-
-```bash
-ros2 topic info /turtle1/pose
-```
-
-Then discover:
-
-```bash
-ros2 topic type /turtle1/pose
-```
-
-This allows students to **discover how ROS 2 works** rather than memorize definitions.
-
----
-
-# 🎓 What You Will Learn
-
-By the end of this workshop you will understand:
-
-### ROS 2 Fundamentals
-
-* ROS 2 architecture
-* Nodes
-* Topics
-* Publishers
-* Subscribers
-* Messages
-* Services
-* Actions
-* Parameters
-* Packages
-* Workspaces
-* `colcon`
-
-### ROS 2 Programming
-
-* Python ROS 2 nodes
-* Publishers
-* Subscribers
-* Callbacks
-* `rclpy`
-* ROS 2 message types
-
-### Robotics
-
-* `/cmd_vel`
-* Odometry
-* LiDAR
-* `LaserScan`
-* TF
-* Coordinate frames
-* RViz2
-* Gazebo
-
-### Autonomous Robotics
-
-* SLAM
-* Occupancy grids
-* Mapping
-* Localization concepts
-* Navigation2 concepts
-
----
-
-# 🛠 Prerequisites
-
-You don't need advanced robotics knowledge.
-
-Recommended:
-
-* Basic Python
-* Basic Linux terminal knowledge
-* Basic programming concepts
-* Basic understanding of robotics
-
-You should understand:
-
-```python
-variables
-functions
-if / else
-loops
-classes
-```
-
----
-
-# 💻 System Requirements
-
-Recommended workshop environment:
-
-| Component | Recommended               |
-| --------- | ------------------------- |
-| OS        | Ubuntu 22.04              |
-| ROS 2     | Humble                    |
-| Python    | Python 3                  |
-| RAM       | 8 GB minimum              |
-| RAM       | 16 GB recommended         |
-| CPU       | 4+ cores recommended      |
-| Storage   | 30+ GB free               |
-| GPU       | Recommended for Gazebo    |
-| Internet  | Required for installation |
-
-> **Important:** Gazebo simulation can be computationally heavy. Close unnecessary applications during the TurtleBot3 practical.
-
----
-
-# 🧩 ROS 2 Architecture
-
-The most important concept of the entire workshop:
-
-```text
-                     ROS 2
-
-        ┌──────────────┐
-        │ Camera Node  │
-        └──────┬───────┘
-               │
-             Topic
-               │
-               ▼
-        ┌──────────────┐
-        │ AI Node      │
-        └──────┬───────┘
-               │
-             Topic
-               │
-               ▼
-        ┌──────────────┐
-        │ Navigation   │
-        │ Node         │
-        └──────┬───────┘
-               │
-             Topic
-               │
-               ▼
-        ┌──────────────┐
-        │ Motor Node   │
-        └──────────────┘
-```
-
-ROS 2 provides middleware and tools for communication between robotics software components. ROS 2's communication layer is designed around standards including DDS and IDL.
-
----
-
-# 🗺 Workshop Roadmap
-
-## DAY 1
-
-```text
-09:00  ROS 2 Introduction
-09:30  Environment + CLI
-10:00  turtlesim
-10:30  Nodes
-11:00  Topics
-12:00  Topic Publishing
-13:00  Lunch
-14:00  Services
-14:45  Parameters
-15:15  Actions
-15:45  Packages + Workspace
-16:15  colcon
-16:30  Debugging
-17:00  Practical Challenge
-17:30  Day 1 Review
-```
-
-## DAY 2
-
-```text
-09:00  ROS 2 Python
-10:00  Publisher + Subscriber
-11:00  Robot Control
-11:30  TurtleBot3
-12:00  Gazebo
-13:00  Lunch
-14:00  RViz2
-14:30  TF
-15:00  LiDAR
-15:30  SLAM
-16:15  Map Saving
-16:30  Navigation2
-17:00  Final Challenge
-17:30  Final Review
-```
-
----
-
-# 🟦 DAY 1 — ROS 2 FUNDAMENTALS
-
----
-
-# 1. ROS 2 Introduction
-
-## What is ROS 2?
-
-ROS 2 is a framework used to build robotic applications.
-
-It provides:
-
-* Communication
-* Hardware abstraction
-* Robot software libraries
-* Tools
-* Visualization
-* Simulation support
-* Navigation
-* Perception
-* Package management
-
-Think of ROS 2 as the **communication and software infrastructure connecting different parts of a robot**.
-
----
-
-# 2. ROS 2 Environment
-
-## Check Ubuntu
-
-```bash
-lsb_release -a
-```
-
-You should see:
-
-```text
-Ubuntu 22.04
-```
-
----
-
-## Source ROS 2
-
-```bash
-source /opt/ros/humble/setup.bash
-```
-
-Check:
-
-```bash
-ros2 --help
-```
-
-### What does `source` do?
-
-It loads ROS 2 environment variables and paths into the current terminal.
-
-To make it permanent:
-
-```bash
-echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
-```
-
-Then:
-
-```bash
-source ~/.bashrc
-```
-
----
-
-# 2.1 Install Basic Development Tools
-
-```bash
-sudo apt update
-```
-
-```bash
-sudo apt install -y \
-python3-colcon-common-extensions \
-git
-```
-
----
-
-# 2.2 Install turtlesim
-
-```bash
-sudo apt install -y ros-humble-turtlesim
-```
-
-Run:
-
-```bash
-ros2 run turtlesim turtlesim_node
-```
-
-You should see the turtle window.
-
-Stop it:
-
-```text
-Ctrl + C
-```
-
----
-
-# 3. Your First ROS 2 Node
-
-Run:
-
-```bash
-ros2 run turtlesim turtlesim_node
-```
-
-Open another terminal:
-
-```bash
-source /opt/ros/humble/setup.bash
-```
-
-Run:
-
-```bash
-ros2 run turtlesim turtle_teleop_key
-```
-
-Use the arrow keys to control the turtle.
-
----
-
-# 4. Understanding Nodes
-
-A **node** is a running ROS 2 process responsible for a specific task.
-
-Examples:
-
-```text
-Camera Node
-LiDAR Node
-Motor Node
-Navigation Node
-SLAM Node
-```
-
----
-
-## List Nodes
-
-```bash
-ros2 node list
-```
-
-Expected:
-
-```text
-/turtlesim
-/teleop_turtle
-```
-
----
-
-## Inspect a Node
-
-```bash
-ros2 node info /turtlesim
-```
-
-Then:
-
-```bash
-ros2 node info /teleop_turtle
-```
-
-Look for:
-
-```text
-Publishers
-Subscribers
-Services
-Actions
-```
-
-### Important idea
-
-```text
-Node = program doing a job
-```
-
----
-
-# 5. Topics
-
-A topic is a named communication channel.
-
-Example:
-
-```text
-teleop
-   │
-   │ publishes
-   ▼
-/turtle1/cmd_vel
-   │
-   │ subscribes
-   ▼
-turtlesim
-```
-
----
-
-# 5.1 List Topics
-
-```bash
-ros2 topic list
-```
-
-Important examples:
-
-```text
-/turtle1/cmd_vel
-/turtle1/pose
-/turtle1/color_sensor
-```
-
----
-
-# 5.2 Inspect a Topic
-
-```bash
-ros2 topic info /turtle1/cmd_vel
-```
-
----
-
-# 5.3 Find Message Type
-
-```bash
-ros2 topic type /turtle1/cmd_vel
-```
-
-Expected:
-
-```text
-geometry_msgs/msg/Twist
-```
-
----
-
-# 5.4 Inspect Message Definition
-
-```bash
-ros2 interface show geometry_msgs/msg/Twist
-```
-
-You will see:
-
-```text
-Vector3 linear
-Vector3 angular
-```
-
-Therefore:
-
-```text
-linear.x
-linear.y
-linear.z
-
-angular.x
-angular.y
-angular.z
-```
-
-For a differential-drive/mobile robot, `linear.x` and `angular.z` are commonly the important velocity components.
-
----
-
-# 5.5 Observe Topic Data
-
-```bash
-ros2 topic echo /turtle1/pose
-```
-
-Move the turtle.
-
-You will see:
-
-```text
-x
-y
-theta
-linear_velocity
-angular_velocity
-```
-
-### Important idea
-
-The turtle is continuously publishing its pose.
-
-Another node can subscribe to that data.
-
----
-
-# 6. Publishing to a Topic
-
-You can publish directly from the terminal.
-
-```bash
-ros2 topic pub \
-/turtle1/cmd_vel \
-geometry_msgs/msg/Twist \
-"{linear: {x: 2.0}, angular: {z: 0.0}}"
-```
-
-The turtle should move forward.
-
----
-
-## Continuous Publishing
-
-```bash
-ros2 topic pub --rate 10 \
-/turtle1/cmd_vel \
-geometry_msgs/msg/Twist \
-"{linear: {x: 1.0}, angular: {z: 1.0}}"
-```
-
-The turtle should move in a curved path.
-
-Stop:
-
-```text
-Ctrl + C
-```
-
----
-
-# 🧪 Challenge 1 — Draw a Square
-
-Try to make the turtle draw:
-
-```text
-┌──────────┐
-│          │
-│          │
-│          │
-└──────────┘
-```
-
-Think about:
-
-```text
-linear.x
-```
-
-and:
-
-```text
-angular.z
-```
-
----
-
-# 7. Services
-
-A service is used for a request/response interaction.
-
-```text
-CLIENT
-   │
-   │ Request
-   ▼
-SERVER
-   │
-   │ Response
-   ▼
-CLIENT
-```
-
-Examples:
-
-```text
-/reset
-/spawn
-/clear
-```
-
----
-
-# 7.1 List Services
-
-```bash
-ros2 service list
-```
-
----
-
-# 7.2 Check Service Type
-
-```bash
-ros2 service type /reset
-```
-
-Expected:
-
-```text
-std_srvs/srv/Empty
-```
-
----
-
-# 7.3 Inspect Service
-
-```bash
-ros2 interface show std_srvs/srv/Empty
-```
-
----
-
-# 7.4 Call Service
-
-```bash
-ros2 service call /reset std_srvs/srv/Empty
-```
-
-The turtle should return to its initial state.
-
----
-
-# 7.5 Spawn Another Turtle
-
-Check:
-
-```bash
-ros2 service type /spawn
-```
-
-Inspect:
-
-```bash
-ros2 interface show turtlesim/srv/Spawn
-```
-
-Call:
-
-```bash
-ros2 service call /spawn \
-turtlesim/srv/Spawn \
-"{x: 5.0, y: 5.0, theta: 0.0, name: 'turtle2'}"
-```
-
----
-
-# Topic vs Service
-
-| Topic                    | Service             |
-| ------------------------ | ------------------- |
-| Continuous communication | Request/response    |
-| Publisher/subscriber     | Client/server       |
-| `/scan`                  | `/reset`            |
-| `/cmd_vel`               | `/spawn`            |
-| Sensor streams           | Specific operations |
-
----
-
-# 8. Parameters
-
-Parameters are configuration values associated with nodes.
-
----
-
-## List Parameters
-
-```bash
-ros2 param list
-```
-
-Or:
-
-```bash
-ros2 param list /turtlesim
-```
-
----
-
-## Get Parameter
-
-```bash
-ros2 param get /turtlesim background_r
-```
-
-Try:
-
-```bash
-ros2 param get /turtlesim background_g
-```
-
-```bash
-ros2 param get /turtlesim background_b
-```
-
----
-
-## Set Parameter
-
-```bash
-ros2 param set /turtlesim background_r 255
-```
-
----
-
-## Dump Parameters
-
-```bash
-ros2 param dump /turtlesim
-```
-
----
-
-# Real Robot Parameter Examples
-
-Real robots may use parameters such as:
-
-```text
-maximum_velocity
-lidar_range
-camera_fps
-robot_name
-controller_gain
-wheel_radius
-wheel_separation
-```
-
----
-
-# 9. Actions
-
-Actions are designed for longer-running operations.
-
-Example:
-
-```text
-Navigation Goal
-       ↓
-Robot starts moving
-       ↓
-Feedback
-       ↓
-Robot reaches goal
-       ↓
-Result
-```
-
----
-
-## List Actions
-
-```bash
-ros2 action list
-```
-
----
-
-## Inspect Turtle Action
-
-```bash
-ros2 action info /turtle1/rotate_absolute
-```
-
-Inspect:
-
-```bash
-ros2 interface show turtlesim/action/RotateAbsolute
-```
-
-### Remember
-
-```text
-Topic
-→ continuous data
-
-Service
-→ request / response
-
-Action
-→ goal / feedback / result
-```
-
-Navigation systems such as Nav2 make extensive use of action-based interfaces.
-
----
-
-# 10. Workspaces, Packages and colcon
-
-A ROS 2 workspace is a development environment containing ROS packages.
-
-Typical structure:
-
-```text
-ros2_ws/
-│
-├── src/
-│
-├── build/
-│
-├── install/
-│
-└── log/
-```
-
----
-
-# 10.1 Create Workspace
-
-```bash
-mkdir -p ~/ros2_ws/src
-```
-
-```bash
-cd ~/ros2_ws
-```
-
----
-
-# 10.2 Create Package
-
-```bash
-cd ~/ros2_ws/src
-```
-
-```bash
-ros2 pkg create \
---build-type ament_python \
-my_robot
-```
-
----
-
-# 10.3 Build Workspace
-
-```bash
-cd ~/ros2_ws
-colcon build
-```
-
----
-
-# 10.4 Source Workspace
-
-```bash
-source install/setup.bash
-```
-
----
-
-# 10.5 Check Package
-
-```bash
-ros2 pkg list | grep my_robot
-```
-
----
-
-# What is colcon?
-
-Think:
-
-```text
-ROS source code
-       ↓
-    colcon
-       ↓
-    Build
-       ↓
-build/
-install/
-log/
-```
-
-`colcon` is the build tool used to build ROS 2 workspaces.
-
----
-
-# 10.6 Build With Symlink Install
-
-For Python development:
-
-```bash
-colcon build --symlink-install
-```
-
-This is particularly convenient while developing Python packages because source changes can be reflected without repeatedly copying Python files into the install tree.
-
----
-
-# 11. ROS 2 Debugging
-
-One of the most important workshop skills.
-
-If something is not working:
-
-```text
-Something doesn't work
-        ↓
-Is the node running?
-        ↓
-ros2 node list
-        ↓
-Does the topic exist?
-        ↓
-ros2 topic list
-        ↓
-Is someone publishing?
-        ↓
-ros2 topic info
-        ↓
-Is data arriving?
-        ↓
-ros2 topic echo
-        ↓
-Is the message type correct?
-        ↓
-ros2 topic type
-```
-
----
-
-# Essential Debugging Commands
-
-## Nodes
-
-```bash
-ros2 node list
-```
-
-```bash
-ros2 node info <node>
-```
-
----
-
-## Topics
-
-```bash
-ros2 topic list
-```
-
-```bash
-ros2 topic info <topic>
-```
-
-```bash
-ros2 topic type <topic>
-```
-
-```bash
-ros2 topic echo <topic>
-```
-
-```bash
-ros2 topic hz <topic>
-```
-
----
-
-## Services
-
-```bash
-ros2 service list
-```
-
-```bash
-ros2 service type <service>
-```
-
----
-
-## Parameters
-
-```bash
-ros2 param list
-```
-
-```bash
-ros2 param get <node> <parameter>
-```
-
-```bash
-ros2 param set <node> <parameter> <value>
-```
-
----
-
-## Actions
-
-```bash
-ros2 action list
-```
-
-```bash
-ros2 action info <action>
-```
-
----
-
-# 🧪 DAY 1 CHALLENGE
-
-Without following the instructor:
-
-1. Start turtlesim.
-2. Start teleoperation.
-3. Find all nodes.
-4. Find all topics.
-5. Find `/turtle1/cmd_vel`.
-6. Find its message type.
-7. Echo `/turtle1/pose`.
-8. Publish velocity manually.
-9. Reset the turtle.
-10. Spawn another turtle.
-11. Inspect parameters.
-12. Create a workspace.
-13. Create a package.
-14. Build it with `colcon`.
-
----
-
-# 🟩 DAY 2 — ROS 2 PROGRAMMING, TURTLEBOT3 & SLAM
-
----
-
-# 13. Create Your First Python ROS 2 Node
-
-We will now move from CLI commands to actual ROS 2 programming.
-
-Architecture:
-
-```text
-/turtle1/pose
-      │
-      ▼
-┌───────────────────┐
-│ Turtle Controller │
-│                   │
-│ Read pose         │
-│ Calculate         │
-│ Publish velocity  │
-└─────────┬─────────┘
-          │
-          ▼
-/turtle1/cmd_vel
-```
-
----
-
-# 13.1 Create Package
-
-```bash
-cd ~/ros2_ws/src
-```
-
-```bash
-ros2 pkg create \
---build-type ament_python \
-turtle_controller \
---dependencies rclpy geometry_msgs turtlesim
-```
-
----
-
-# 13.2 Create Python Node
-
-Create:
-
-```text
-~/ros2_ws/src/turtle_controller/
-└── turtle_controller/
-    └── controller.py
-```
-
-Use:
-
-```python
-import rclpy
-from rclpy.node import Node
-
-from geometry_msgs.msg import Twist
-from turtlesim.msg import Pose
-
-
-class TurtleController(Node):
-
-    def __init__(self):
-
-        super().__init__('turtle_controller')
-
-        self.publisher = self.create_publisher(
-            Twist,
-            '/turtle1/cmd_vel',
-            10
-        )
-
-        self.subscription = self.create_subscription(
-            Pose,
-            '/turtle1/pose',
-            self.pose_callback,
-            10
-        )
-
-    def pose_callback(self, msg):
-
-        self.get_logger().info(
-            f'x={msg.x:.2f}, y={msg.y:.2f}'
-        )
-
-        cmd = Twist()
-
-        cmd.linear.x = 0.5
-
-        self.publisher.publish(cmd)
-
-
-def main(args=None):
-
-    rclpy.init(args=args)
-
-    node = TurtleController()
-
-    rclpy.spin(node)
-
-    node.destroy_node()
-
-    rclpy.shutdown()
-
-
-if __name__ == '__main__':
-    main()
-```
-
----
-
-# 13.3 Understand the Code
-
-## Node
-
-```python
-class TurtleController(Node):
-```
-
-Creates a ROS 2 node.
-
----
-
-## Publisher
-
-```python
-self.create_publisher(
-    Twist,
-    '/turtle1/cmd_vel',
-    10
-)
-```
-
-Creates a publisher.
-
----
-
-## Subscriber
-
-```python
-self.create_subscription(
-    Pose,
-    '/turtle1/pose',
-    self.pose_callback,
-    10
-)
-```
-
-Creates a subscriber.
-
----
-
-## Callback
-
-```python
-def pose_callback(self, msg):
-```
-
-Runs when a pose message arrives.
-
----
-
-## Publish
-
-```python
-self.publisher.publish(cmd)
-```
-
-Publishes the velocity command.
-
----
-
-# 13.4 Add Executable
-
-Open:
-
-```text
-setup.py
-```
-
-Add:
-
-```python
-entry_points={
-    'console_scripts': [
-        'controller = turtle_controller.controller:main',
-    ],
-},
-```
-
----
-
-# 13.5 Build
-
-```bash
-cd ~/ros2_ws
-```
-
-```bash
-colcon build --symlink-install
-```
-
-Source:
-
-```bash
-source install/setup.bash
-```
-
----
-
-# 13.6 Run
-
-Start turtlesim:
-
-```bash
-ros2 run turtlesim turtlesim_node
-```
-
-Then:
-
-```bash
-ros2 run turtle_controller controller
-```
-
----
-
-# 13.7 Inspect Your Node
-
-```bash
-ros2 node list
-```
-
-You should see:
-
-```text
-/turtlesim
-/turtle_controller
-```
-
-Inspect:
-
-```bash
-ros2 node info /turtle_controller
-```
-
-You should see:
-
-```text
-Publisher:
-    /turtle1/cmd_vel
-
-Subscriber:
-    /turtle1/pose
-```
-
----
-
-# 14. Publisher + Subscriber Mental Model
-
-This is one of the most important diagrams of the workshop:
-
-```text
-              TOPIC
-
-Publisher                  Subscriber
-
-   Node                        Node
-    │                           ▲
-    │                           │
-    │────── message ───────────►│
-    │                           │
-    ▼                           │
-
- /turtle1/cmd_vel        /turtle1/cmd_vel
-```
-
-ROS 2 allows these nodes to communicate without being tightly coupled to each other's internal implementation.
-
----
-
-# 15. Basic Robot Control
-
-Now introduce simple robotics mathematics.
-
-Suppose:
-
-```text
-Target:
-
-x = 8
-y = 8
-```
-
-Robot:
-
-```text
-current_x
-current_y
-current_theta
-```
-
-Calculate:
-
-```text
-error_x = target_x - current_x
-
-error_y = target_y - current_y
-```
-
-Distance:
-
-```text
-distance = sqrt(error_x² + error_y²)
-```
-
-Target direction:
-
-```text
-target_angle = atan2(error_y, error_x)
-```
-
-Angular error:
-
-```text
-angle_error = target_angle - current_theta
-```
-
-Simple proportional control:
-
-```text
-linear_velocity =
-    Kp × distance
-
-angular_velocity =
-    Kp × angle_error
-```
-
----
-
-# 🧪 Challenge 2 — Autonomous Turtle
-
-Modify your node so that the turtle moves toward:
-
-```text
-x = 8
-y = 8
-```
-
-Then try:
-
-```text
-x = 2
-y = 8
-```
-
-Then:
-
-```text
-x = 8
-y = 2
-```
-
----
-
-# 16. TurtleBot3
-
-Now we transition from:
-
-```text
-Educational simulation
-```
-
-to:
-
-```text
-Mobile robotics simulation
-```
-
-TurtleBot3 is a compact mobile robot platform used extensively for ROS education and development.
-
----
-
-# 16.1 TurtleBot3 Environment
-
-Set the robot model:
-
-```bash
-export TURTLEBOT3_MODEL=burger
-```
-
-Check:
-
-```bash
-echo $TURTLEBOT3_MODEL
-```
-
-Expected:
-
-```text
-burger
-```
-
-To make it permanent:
-
-```bash
-echo 'export TURTLEBOT3_MODEL=burger' >> ~/.bashrc
-```
-
----
-
-# 17. Gazebo Simulation
-
-Gazebo provides the simulated robotics environment.
-
-Conceptually:
-
-```text
-ROS 2
-  │
-  ├── Robot
-  ├── Sensors
-  ├── Motors
-  └── Environment
-          │
-          ▼
-       Gazebo
-```
-
----
-
-# 17.1 Launch TurtleBot3 World
-
-First:
-
-```bash
-source /opt/ros/humble/setup.bash
-```
-
-Then:
-
-```bash
-source ~/turtlebot3_ws/install/setup.bash
-```
-
-Set:
-
-```bash
-export TURTLEBOT3_MODEL=burger
-```
-
-Launch:
-
 ```bash
+killall -9 gzserver gzclient 2>/dev/null
 ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
 ```
 
----
+✅ **Ready when**
 
-# 17.2 Teleoperate TurtleBot3
+- the log shows `Publishing odom transforms between [odom] and [base_footprint]`, and
+- the Gazebo window shows a hexagon world with a 3×3 grid of pillars, **with shadows and shading**.
 
-Open another terminal:
+> ⏳ The **first** launch can take 1–3 minutes (Gazebo builds its cache). **Do not press Ctrl+C.** Later launches take seconds.
+> The robot is only **14 cm wide**, so from above it looks like a tiny dark dot near the pillars (it starts at x = −2 m, y = −0.5 m).
 
-```bash
-source /opt/ros/humble/setup.bash
-```
+**Messages you can ignore:** `Gazebo reaches end-of-life…`, `stereo is NOT SUPPORTED`, `process has finished cleanly`.
 
-```bash
-source ~/turtlebot3_ws/install/setup.bash
-```
+### ✅ Run the automatic check (new terminal)
 
 ```bash
-export TURTLEBOT3_MODEL=burger
+cd ~/tb3_sim
+bash check_simulation.sh
 ```
 
-Run:
+You should see all **PASS** and `ALL … CHECKS PASSED 🎉`. The robot drives forward and back by itself. **If anything says FAIL, read the → hint under it and go to [Troubleshooting](#-troubleshooting).** Do not continue until everything passes.
 
-```bash
-ros2 run turtlebot3_teleop teleop_keyboard
-```
-
-Drive the robot.
-
----
-
-# 17.3 Inspect Robot Nodes
-
-```bash
-ros2 node list
-```
-
----
-
-# 17.4 Inspect Topics
-
-```bash
-ros2 topic list
-```
-
-Important topics include:
-
-```text
-/cmd_vel
-/odom
-/scan
-/tf
-/tf_static
-```
-
----
-
-# 17.5 Inspect `/cmd_vel`
-
-```bash
-ros2 topic info /cmd_vel
-```
-
-```bash
-ros2 topic type /cmd_vel
-```
-
-Expected:
-
-```text
-geometry_msgs/msg/Twist
-```
-
----
-
-# 18. RViz2
-
-RViz2 is used to visualize ROS data.
-
-It can display:
-
-* Robot model
-* LiDAR
-* Map
-* TF
-* Odometry
-* Paths
-* Sensors
-
----
-
-# 18.1 Launch RViz2
+### 👀 Terminal 2 — RViz2
 
 ```bash
 ros2 launch turtlebot3_bringup rviz2.launch.py
 ```
 
----
+RViz2 opens **zoomed far out** and the LiDAR dots are tiny. Do this **first-time setup**:
 
-# 19. TF — Coordinate Frames
+| # | Where | Change |
+| --- | --- | --- |
+| 1 | **Global Options → Fixed Frame** | `odom` |
+| 2 | **Mouse scroll wheel** over the 3D view | zoom in until the grid squares are big |
+| 3 | **Views panel → Target Frame** | `base_footprint` (camera follows the robot) |
+| 4 | **LaserScan → Size (m)** | `0.01` → `0.05` |
+| 5 | **Add → By display type → RobotModel** (if missing) | Description Topic `/robot_description` |
+| 6 | **Add → By display type → TF** (optional) | shows coordinate frames |
 
-Robots contain many coordinate systems.
+LaserScan must use topic `/scan` with **Reliability Policy: Best Effort**.
 
-Example:
+✅ **Ready when:** you see the robot body and a ring of red/pink LiDAR dots.
 
-```text
-map
- │
- ▼
-odom
- │
- ▼
-base_footprint
- │
- ▼
-base_link
- │
- ▼
-laser
-```
-
----
-
-## Meaning
-
-### `map`
-
-Global map coordinate system.
-
-### `odom`
-
-Odometry reference.
-
-### `base_link`
-
-Robot body frame.
-
-### `laser`
-
-LiDAR sensor frame.
-
----
-
-# 19.1 Inspect TF
-
-```bash
-ros2 topic echo /tf
-```
-
-Static transforms:
-
-```bash
-ros2 topic echo /tf_static
-```
-
----
-
-# Key Concept
-
-TF answers:
-
-> **Where is coordinate frame A relative to coordinate frame B?**
-
-This becomes critical for:
-
-```text
-SLAM
-Localization
-Navigation
-Manipulation
-Computer Vision
-Sensor Fusion
-```
-
----
-
-# 20. LiDAR and LaserScan
-
-TurtleBot3 uses a 2-D laser scanner for distance measurements around the robot. ROBOTIS describes its LDS sensors as 360° laser scanners used for SLAM and navigation.
-
-Conceptually:
-
-```text
-              WALL
-        █████████████
-
-             ↑
-        \    │    /
-         \   │   /
-          \  │  /
-           \ │ /
-            \│/
-             🤖
-```
-
-The LiDAR produces distance measurements.
-
----
-
-# 20.1 Inspect `/scan`
-
-```bash
-ros2 topic info /scan
-```
-
-Type:
-
-```bash
-ros2 topic type /scan
-```
-
-Expected:
-
-```text
-sensor_msgs/msg/LaserScan
-```
-
----
-
-# 20.2 View LiDAR Data
-
-```bash
-ros2 topic echo /scan
-```
-
-You will see fields including:
-
-```text
-angle_min
-angle_max
-angle_increment
-range_min
-range_max
-ranges
-```
-
----
-
-# 20.3 Understand `ranges`
-
-The `ranges` array contains measured distances.
-
-Conceptually:
-
-```text
-ranges[0]
-ranges[1]
-ranges[2]
-...
-ranges[n]
-```
-
-Each measurement corresponds to an angle.
-
-This is the raw information SLAM can use to understand the environment.
-
----
-
-# 21. SLAM
-
-## What does SLAM mean?
-
-```text
-S
-Simultaneous
-
-L
-Localization
-
-A
-And
-
-M
-Mapping
-```
-
-The robot wants to estimate:
-
-```text
-Where am I?
-```
-
-while simultaneously building:
-
-```text
-What does the environment look like?
-```
-
----
-
-# 21.1 SLAM Inputs
-
-A simplified system:
-
-```text
-LiDAR
-  │
-  ▼
-/scan
-  │
-  ├─────────────┐
-  │             │
-  ▼             ▼
-SLAM         Odometry
-  │             │
-  └──────┬──────┘
-         ▼
-      SLAM
-         │
-     ┌───┴────┐
-     ▼        ▼
-   /map      /tf
-```
-
----
-
-# 21.2 Why Odometry Matters
-
-Odometry provides an estimate of how the robot moved.
-
-For example:
-
-```text
-Start
-  ↓
-Move 1 m
-  ↓
-Rotate
-  ↓
-Move 2 m
-```
-
-Odometry estimates the robot's movement.
-
-LiDAR provides environmental observations.
-
-SLAM combines these sources to estimate the robot's trajectory and construct a map.
-
----
-
-# 21.3 Run TurtleBot3 World
-
-```bash
-export TURTLEBOT3_MODEL=burger
-```
-
-```bash
-ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
-```
-
----
-
-# 21.4 Launch SLAM
-
-Open another terminal:
-
-```bash
-source /opt/ros/humble/setup.bash
-```
-
-```bash
-source ~/turtlebot3_ws/install/setup.bash
-```
-
-```bash
-export TURTLEBOT3_MODEL=burger
-```
-
-Run:
-
-```bash
-ros2 launch turtlebot3_cartographer cartographer.launch.py use_sim_time:=True
-```
-
----
-
-# 21.5 Start Teleoperation
-
-```bash
-export TURTLEBOT3_MODEL=burger
-```
+### ⌨️ Terminal 3 — Keyboard teleop
 
 ```bash
 ros2 run turtlebot3_teleop teleop_keyboard
 ```
 
-Move the robot slowly around the environment.
+Click inside this terminal, then press:
+
+| Key | Action |
+| --- | --- |
+| `w` | forward speed **+0.01 m/s** per press |
+| `x` | backward speed |
+| `a` / `d` | turn left / right |
+| `s` or `space` | **STOP** |
+
+> ⚠️ Each press changes the speed only a little. **Press `w` about 10–15 times** (≈0.15 m/s) before expecting to see motion. Maximum speed is 0.22 m/s. The numbers in the terminal only show the *command*, not that the robot moved — use `check_simulation.sh` to prove it.
+
+### 🎉 Success
+
+- The robot moves in **Gazebo**
+- The robot and LiDAR move in **RViz2**
+- `bash check_simulation.sh` prints **ALL CHECKS PASSED**
 
 ---
 
-# 21.6 Observe the Map
-
-In RViz2 you should see:
+## 4️⃣ Understand what you are seeing
 
 ```text
-Robot
-   ↓
-LiDAR observations
-   ↓
-Walls
-   ↓
-Map
+Gazebo (physics + simulated robot)  ──/scan /odom /tf──►  ROS 2  ──►  RViz2 (visualisation)
+          ▲                                                    │
+          └──────────────── /cmd_vel ◄──── teleop / Nav2 ◄─────┘
 ```
 
-Move around the environment systematically.
+| Tool | Question it answers |
+| --- | --- |
+| **Gazebo** | *What is physically happening?* |
+| **RViz2** | *What does ROS think is happening?* |
 
-Avoid moving too quickly.
-
----
-
-# 21.7 Inspect SLAM Topics
+**Key topics**
 
 ```bash
 ros2 topic list
+ros2 topic hz /scan                      # LiDAR rate (~5 Hz)
+ros2 topic echo /odom --once             # robot position
+ros2 topic info /cmd_vel                 # who publishes / subscribes
 ```
 
-Look for:
+**`/cmd_vel` meaning:** `linear.x` = forward/back, `angular.z` = turn left/right. TurtleBot3 cannot move sideways.
 
-```text
-/map
-/scan
-/odom
-/tf
+**Drive without the keyboard** (stop with Ctrl+C, then send the stop command):
+
+```bash
+ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.15}, angular: {z: 0.0}}"
+ros2 topic pub --once /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.0}, angular: {z: 0.0}}"
 ```
+
+**TF frames:** `map → odom → base_footprint → base_link → base_scan`
+(`map → odom` only exists while SLAM or Nav2 is running.) Make a diagram with `ros2 run tf2_tools view_frames`.
 
 ---
 
-# 21.8 Inspect Map
+## 5️⃣ SLAM — build a map
+
+Keep **Terminal 1 (Gazebo)** running. Close RViz2 and teleop, then:
 
 ```bash
-ros2 topic info /map
+# Terminal 2
+ros2 launch slam_toolbox online_async_launch.py use_sim_time:=true
+
+# Terminal 3
+ros2 launch turtlebot3_bringup rviz2.launch.py
+#   RViz2: Fixed Frame = map, Add → By topic → /map → Map
+
+# Terminal 4
+ros2 run turtlebot3_teleop teleop_keyboard
 ```
 
-Type:
+Drive **slowly** around the world; the map fills in. Fast spinning makes a blurry map. Save it:
 
 ```bash
-ros2 topic type /map
+ros2 run nav2_map_server map_saver_cli -f ~/turtlebot3_map
 ```
 
-Expected:
+This creates `~/turtlebot3_map.yaml` and `~/turtlebot3_map.pgm`.
 
-```text
-nav_msgs/msg/OccupancyGrid
+## 6️⃣ Nav2 — autonomous navigation
+
+Stop SLAM and teleop (Gazebo keeps running), then:
+
+```bash
+ros2 launch turtlebot3_navigation2 navigation2.launch.py use_sim_time:=True map:=$HOME/turtlebot3_map.yaml
 ```
+
+In the RViz2 window that opens:
+
+1. **2D Pose Estimate** → click and drag where the robot is, in the direction it faces.
+2. **Nav2 Goal** → click and drag the destination.
+3. Watch the robot plan a path and drive there. 🟢
 
 ---
 
-# 21.9 Occupancy Grid
+## 🛠️ Troubleshooting
 
-A map can conceptually be represented as:
-
-```text
-UNKNOWN UNKNOWN UNKNOWN UNKNOWN
-
-FREE    FREE    FREE    WALL
-
-FREE    FREE    FREE    WALL
-
-FREE    FREE    FREE    FREE
-```
-
-Typical occupancy-grid interpretation:
-
-```text
--1  → unknown
- 0  → free
-100 → occupied
-```
-
----
-
-# 22. Save the Map
-
-After completing the environment scan:
+**Golden rule:** when anything strange happens, stop everything and restart cleanly:
 
 ```bash
-ros2 run nav2_map_server map_saver_cli -f ~/my_map
+killall -9 gzserver gzclient 2>/dev/null
+ros2 daemon stop && ros2 daemon start
 ```
 
-Check:
+then start **only** Terminal 1 and run `bash check_simulation.sh`.
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| Gazebo window is **black** (WSL2) | graphics driver | New terminal (`echo $LIBGL_ALWAYS_SOFTWARE` must print `1`); `wsl --update` + `wsl --shutdown` in PowerShell |
+| Gazebo grey/stuck for minutes | first-run cache, or stale processes | Wait up to 3 min once; otherwise `killall -9 gzserver gzclient` and relaunch |
+| `package 'turtlebot3_gazebo' not found` | terminal has no ROS settings | Open a **new** terminal (or `source ~/.bashrc`) |
+| **Robot invisible / "small circle gets smaller"** | robot is **falling** – no floor | See below |
+| Robot not listed in Gazebo (**World → Models → `burger`**) | spawn failed | See "Robot not spawned" below |
+| Teleop numbers change but robot does not move | robot not spawned / falling / key presses too small | Run `check_simulation.sh`; press `w` 10–15 times |
+| Robot visible in Gazebo, invisible in RViz2 | RViz2 zoomed out / Fixed Frame wrong | Section 3, RViz2 table |
+| `bad interpreter: /bin/bash^M` | Windows line endings | `sed -i 's/\r$//' ~/tb3_sim/*.sh` |
+| `rosdep` / apt errors | no internet / locked apt | check internet; `sudo apt update`; re-run the setup script |
+
+### ❌ Robot falls through the floor (`z` very negative)
+
+`check_simulation.sh` shows *"Robot is FALLING"*, or:
 
 ```bash
-ls ~/my_map*
+ros2 topic echo /odom --once --field pose.pose.position.z     # should be close to 0.0
 ```
 
-You should have files such as:
+shows something like `-881523`. Gazebo could not load `ground_plane` / `sun`.
 
-```text
-my_map.pgm
-my_map.yaml
-```
-
----
-
-# 23. Introduction to Navigation2
-
-SLAM creates a map.
-
-Navigation uses that map to help a robot move autonomously.
-
-Conceptually:
-
-```text
-                 MAP
-                  │
-                  ▼
-             Localization
-                  │
-                  ▼
-              Navigation
-                  │
-           ┌──────┴──────┐
-           ▼             ▼
-     Path Planning   Obstacle Avoidance
-           │             │
-           └──────┬──────┘
-                  ▼
-               /cmd_vel
-                  │
-                  ▼
-                Robot
-```
-
----
-
-# 23.1 Navigation Goal
-
-A navigation system can receive a goal:
-
-```text
-Goal:
-X = 3.0
-Y = 2.0
-```
-
-Then:
-
-```text
-Robot
-  ↓
-Plan path
-  ↓
-Avoid obstacles
-  ↓
-Follow path
-  ↓
-Reach goal
-```
-
----
-
-# 23.2 Launch Navigation
-
-First launch Gazebo:
+**Fix:** re-run `bash setup_turtlebot3_sim.sh` (it recreates the floor if needed), open a **new terminal**, then:
 
 ```bash
-export TURTLEBOT3_MODEL=burger
-```
-
-```bash
+echo $GAZEBO_MODEL_PATH            # should contain /usr/share/gazebo-11/models and ~/.gazebo/models
+ls /usr/share/gazebo-11/models ~/.gazebo/models     # ground_plane and sun must appear in one of them
+killall -9 gzserver gzclient 2>/dev/null
 ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
 ```
 
-Then:
+Gazebo should now show shadows and the robot should sit on the floor. In `~/.bashrc` the line `source /usr/share/gazebo/setup.sh` must come **before** `export GAZEBO_MODEL_DATABASE_URI=""`.
 
-```bash
-export TURTLEBOT3_MODEL=burger
-```
+### ❌ Robot not spawned
 
-```bash
-ros2 launch turtlebot3_navigation2 navigation2.launch.py \
-use_sim_time:=True \
-map:=$HOME/my_map.yaml
-```
-
-Then use RViz2 to:
+In the Terminal 1 log look for `spawn_entity.py … process has finished cleanly`. Errors like these mean it failed:
 
 ```text
-1. Set initial pose
-2. Set navigation goal
-3. Observe path planning
-4. Observe robot movement
+Service /spawn_entity unavailable. Was Gazebo started with GazeboRosFactory?
+Entity [burger] already exists
+```
+
+Run the golden-rule clean restart. Launch **only one** simulation at a time (never `empty_world` and `turtlebot3_world` together) and wait for the log line before opening anything else. With software rendering the first spawn can take up to a minute.
+
+---
+
+## 📋 Cheat sheet
+
+```bash
+# Start (3 terminals)
+killall -9 gzserver gzclient 2>/dev/null && ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
+ros2 launch turtlebot3_bringup rviz2.launch.py
+ros2 run turtlebot3_teleop teleop_keyboard
+
+# Health check
+bash ~/tb3_sim/check_simulation.sh
+
+# Handy tools
+ros2 node list          ros2 topic list         ros2 topic hz /scan
+ros2 topic echo /odom --once                    ros2 run tf2_tools view_frames
 ```
 
 ---
 
-# 🧪 24. FINAL PROJECT
+## 🧑‍🏫 Notes for instructors
 
-## Mission
+- Tested design: Ubuntu 22.04 + ROS 2 Humble + Gazebo Classic 11 (apt packages, no source build).
+- The Humble TurtleBot3 simulation uses the Gazebo **entity name `burger`** (not `turtlebot3_burger`).
+- Ask students to paste the output of `bash check_simulation.sh` when they need help — it shows exactly which stage fails.
+- Common classroom failures: (1) black Gazebo on WSL2 → software rendering + `wsl --update`; (2) no floor → robot falls; (3) opening RViz2/teleop before Gazebo has finished spawning the robot; (4) leftover `gzserver` processes.
 
-Your team must demonstrate an autonomous robotics workflow.
+## 📚 Learning path
 
-### Level 1 — ROS 2
+ROS 2 basics → Nodes & topics → TurtleBot3 → Gazebo → Teleoperation → LiDAR → TF2 → RViz2 → SLAM → Mapping → Nav2 → Autonomous navigation → Real robot
 
-Launch ROS 2.
-
-### Level 2 — Nodes
-
-Show:
-
-```bash
-ros2 node list
-```
-
-### Level 3 — Topics
-
-Show:
-
-```bash
-ros2 topic list
-```
-
-### Level 4 — Communication
-
-Show:
-
-```text
-/cmd_vel
-/scan
-/odom
-```
-
-### Level 5 — Sensor
-
-Demonstrate:
-
-```bash
-ros2 topic echo /scan
-```
-
-### Level 6 — Visualization
-
-Open RViz2.
-
-### Level 7 — SLAM
-
-Build a map.
-
-### Level 8 — Save Map
-
-```bash
-ros2 run nav2_map_server map_saver_cli -f ~/my_map
-```
-
-### Level 9 — Navigation
-
-Load the map.
-
-### Level 10 — Autonomous Goal
-
-Give the robot a navigation goal.
-
----
-
-# 🧠 FINAL ROS 2 MENTAL MODEL
-
-You should now understand:
-
-```text
-                         ROS 2
-                           │
-          ┌────────────────┼────────────────┐
-          │                │                │
-        Nodes            Topics          Services
-          │                │                │
-          │                │                │
-          └────────────────┼────────────────┘
-                           │
-                        Messages
-                           │
-                       Parameters
-                           │
-                         Actions
-                           │
-                           ▼
-                        Robot
-                           │
-          ┌────────────────┼────────────────┐
-          │                │                │
-        Sensors          Compute         Actuators
-          │                │                │
-        LiDAR             SLAM            Motors
-        Camera            Nav2            Wheels
-        IMU               AI
-```
-
----
-
-# ⚡ ROS 2 COMMAND CHEAT SHEET
-
-## Environment
-
-```bash
-source /opt/ros/humble/setup.bash
-```
-
-```bash
-printenv | grep ROS
-```
-
----
-
-## Nodes
-
-```bash
-ros2 node list
-```
-
-```bash
-ros2 node info <node>
-```
-
----
-
-## Topics
-
-```bash
-ros2 topic list
-```
-
-```bash
-ros2 topic info <topic>
-```
-
-```bash
-ros2 topic type <topic>
-```
-
-```bash
-ros2 topic echo <topic>
-```
-
-```bash
-ros2 topic hz <topic>
-```
-
-```bash
-ros2 topic pub <topic> <type> <data>
-```
-
----
-
-## Services
-
-```bash
-ros2 service list
-```
-
-```bash
-ros2 service type <service>
-```
-
-```bash
-ros2 service call <service> <type> <data>
-```
-
----
-
-## Actions
-
-```bash
-ros2 action list
-```
-
-```bash
-ros2 action info <action>
-```
-
----
-
-## Parameters
-
-```bash
-ros2 param list
-```
-
-```bash
-ros2 param get <node> <parameter>
-```
-
-```bash
-ros2 param set <node> <parameter> <value>
-```
-
-```bash
-ros2 param dump <node>
-```
-
----
-
-## Packages
-
-```bash
-ros2 pkg list
-```
-
-```bash
-ros2 pkg executables
-```
-
-```bash
-ros2 pkg prefix <package>
-```
-
----
-
-## Interfaces
-
-```bash
-ros2 interface list
-```
-
-```bash
-ros2 interface show <interface>
-```
-
----
-
-## Workspace
-
-```bash
-mkdir -p ~/ros2_ws/src
-```
-
-```bash
-cd ~/ros2_ws
-```
-
-```bash
-colcon build
-```
-
-```bash
-colcon build --symlink-install
-```
-
-```bash
-source install/setup.bash
-```
-
----
-
-# 🔍 ROS 2 DEBUGGING FLOWCHART
-
-```text
-                Something is not working
-                         │
-                         ▼
-                 Is ROS sourced?
-                         │
-                         ▼
-                ros2 --help
-                         │
-                         ▼
-                  Node running?
-                         │
-                  ros2 node list
-                         │
-                         ▼
-                  Topic exists?
-                         │
-                 ros2 topic list
-                         │
-                         ▼
-               Correct publisher?
-                         │
-                 ros2 topic info
-                         │
-                         ▼
-                  Data arriving?
-                         │
-                 ros2 topic echo
-                         │
-                         ▼
-                Correct data type?
-                         │
-                 ros2 topic type
-                         │
-                         ▼
-                    Debug
-```
-
----
-
-# 🛠 Troubleshooting
-
-## Problem: `ros2: command not found`
-
-Run:
-
-```bash
-source /opt/ros/humble/setup.bash
-```
-
-If it works, add it permanently:
-
-```bash
-echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
-```
-
----
-
-# Problem: Package not found
-
-Example:
-
-```text
-Package 'turtlesim' not found
-```
-
-Check:
-
-```bash
-source /opt/ros/humble/setup.bash
-```
-
-Then:
-
-```bash
-ros2 pkg list | grep turtlesim
-```
-
----
-
-# Problem: Custom package not found
-
-Source the workspace:
-
-```bash
-source ~/ros2_ws/install/setup.bash
-```
-
-Then:
-
-```bash
-ros2 pkg list | grep turtle_controller
-```
-
----
-
-# Problem: Changes to Python code are not reflected
-
-Build:
-
-```bash
-colcon build --symlink-install
-```
-
-Then:
-
-```bash
-source install/setup.bash
-```
-
----
-
-# Problem: Gazebo is slow
-
-Try:
-
-* Close Chrome tabs.
-* Close unnecessary applications.
-* Reduce Gazebo rendering load.
-* Use a machine with adequate RAM/GPU.
-* Run fewer visualization tools simultaneously.
-
----
-
-# Problem: TurtleBot3 model missing
-
-Check:
-
-```bash
-echo $TURTLEBOT3_MODEL
-```
-
-Set:
-
-```bash
-export TURTLEBOT3_MODEL=burger
-```
-
----
-
-# Problem: ROS nodes cannot see each other
-
-Check:
-
-```bash
-printenv | grep ROS
-```
-
-Check:
-
-```bash
-echo $ROS_DOMAIN_ID
-```
-
-For a classroom, ensure students who need to communicate are using the same ROS domain.
-
----
-
-# Problem: Gazebo launches but robot is missing
-
-Check:
-
-```bash
-echo $TURTLEBOT3_MODEL
-```
-
-Then:
-
-```bash
-source /opt/ros/humble/setup.bash
-source ~/turtlebot3_ws/install/setup.bash
-```
-
-Try launching again.
-
----
-
-# 📖 CONCEPT SUMMARY
-
-| Concept    | Meaning                       | Example             |
-| ---------- | ----------------------------- | ------------------- |
-| Node       | Running ROS 2 process         | `turtlesim`         |
-| Topic      | Communication stream          | `/scan`             |
-| Publisher  | Sends topic messages          | LiDAR               |
-| Subscriber | Receives topic messages       | SLAM                |
-| Message    | Data structure                | `LaserScan`         |
-| Service    | Request/response              | `/reset`            |
-| Action     | Long-running goal             | Navigation          |
-| Parameter  | Configuration value           | Speed               |
-| Package    | ROS software unit             | `turtlesim`         |
-| Workspace  | Development environment       | `ros2_ws`           |
-| colcon     | Build system/tool             | `colcon build`      |
-| TF         | Coordinate-frame relationship | `base_link → laser` |
-| Odometry   | Estimated movement            | `/odom`             |
-| LiDAR      | Distance sensor               | `/scan`             |
-| SLAM       | Mapping + localization        | Cartographer        |
-| RViz2      | Visualization tool            | Map/LiDAR           |
-| Gazebo     | Simulation environment        | TurtleBot3          |
-| Nav2       | Navigation framework          | Goal → path         |
-
----
-
-# 🔗 HOW EVERYTHING CONNECTS
-
-This is the complete robotics pipeline:
-
-```text
-                    ROBOT
-
-              ┌─────────────┐
-              │   Sensors   │
-              └──────┬──────┘
-                     │
-          ┌──────────┼──────────┐
-          ▼          ▼          ▼
-        LiDAR       IMU       Camera
-          │          │          │
-          └──────────┼──────────┘
-                     │
-                     ▼
-                   ROS 2
-                     │
-             ┌───────┴───────┐
-             ▼               ▼
-            SLAM           Perception
-             │               │
-             ▼               ▼
-            Map              AI
-             │
-             ▼
-        Localization
-             │
-             ▼
-            Nav2
-             │
-             ▼
-       Path Planning
-             │
-             ▼
-       Motion Control
-             │
-             ▼
-          /cmd_vel
-             │
-             ▼
-           Motors
-```
-
----
-
-# 🚀 WHAT TO LEARN NEXT
-
-After completing this workshop, continue in this order:
-
-```text
-1. ROS 2 Fundamentals
-        ↓
-2. Python ROS 2
-        ↓
-3. TF2
-        ↓
-4. URDF
-        ↓
-5. Xacro
-        ↓
-6. ros2_control
-        ↓
-7. Gazebo
-        ↓
-8. SLAM
-        ↓
-9. Localization
-        ↓
-10. Nav2
-        ↓
-11. Computer Vision
-        ↓
-12. OpenCV
-        ↓
-13. Robot Manipulation
-        ↓
-14. MoveIt 2
-        ↓
-15. Sensor Fusion
-        ↓
-16. AI + Robotics
-        ↓
-17. Industrial Robotics
-```
-
----
-
-# 🏭 INDUSTRIAL ROS 2 CONNECTION
-
-The concepts learned here are directly useful when working with industrial/mobile robotic systems.
-
-A simplified industrial architecture may look like:
-
-```text
-                  WMS
-                   │
-                   ▼
-                  WCS
-                   │
-                   ▼
-              Robot Fleet
-                   │
-          ┌────────┼────────┐
-          ▼        ▼        ▼
-        AMR 1    AMR 2    AMR 3
-          │        │        │
-         ROS 2    ROS 2    ROS 2
-          │        │        │
-        LiDAR    LiDAR    LiDAR
-        SLAM     SLAM     SLAM
-        Nav2     Nav2     Nav2
-```
-
-Understanding:
-
-```text
-Nodes
-Topics
-Services
-Actions
-Parameters
-TF
-SLAM
-Navigation
-```
-
-provides the foundation for understanding much larger robotics software architectures.
-
----
-
-# 🎯 FINAL WORKSHOP CHECKLIST
-
-Before completing the workshop, verify that you can answer **YES** to all of these:
-
-* [ ] I can explain ROS 2.
-* [ ] I understand nodes.
-* [ ] I can list nodes.
-* [ ] I can inspect a node.
-* [ ] I understand topics.
-* [ ] I can list topics.
-* [ ] I can inspect topic data.
-* [ ] I can identify a message type.
-* [ ] I can publish a message.
-* [ ] I understand services.
-* [ ] I can call a service.
-* [ ] I understand parameters.
-* [ ] I can get/set parameters.
-* [ ] I understand actions.
-* [ ] I understand packages.
-* [ ] I can create a workspace.
-* [ ] I can create a package.
-* [ ] I can use `colcon`.
-* [ ] I can create a Python ROS 2 node.
-* [ ] I understand publishers/subscribers.
-* [ ] I understand `/cmd_vel`.
-* [ ] I understand `/odom`.
-* [ ] I understand `/scan`.
-* [ ] I understand TF.
-* [ ] I understand RViz2.
-* [ ] I understand Gazebo.
-* [ ] I understand LiDAR.
-* [ ] I understand SLAM.
-* [ ] I can generate a map.
-* [ ] I can save a map.
-* [ ] I understand the purpose of Nav2.
-
----
-
-# 🧑‍🏫 INSTRUCTOR TEACHING RULE
-
-Do not teach ROS 2 as a collection of commands.
-
-For every command ask:
-
-### 1. What is this?
-
-### 2. Why do we need it?
-
-### 3. What is happening internally?
-
-### 4. What output should we expect?
-
-### 5. How can we inspect it?
-
-### 6. What happens if we modify it?
-
-### 7. How is this used on a real robot?
-
-For example:
-
-```bash
-ros2 topic echo /scan
-```
-
-Don't stop at:
-
-> "This shows LiDAR data."
-
-Explain:
-
-```text
-LiDAR
- ↓
-Driver
- ↓
-ROS 2 Node
- ↓
-/scan
- ↓
-LaserScan message
- ↓
-SLAM
- ↓
-Map
- ↓
-Navigation
-```
-
-That connection is what turns the workshop from a **ROS command tutorial into a robotics engineering workshop**.
-
----
-
-# 📚 OFFICIAL RESOURCES
-
-## ROS 2
-
-* [ROS 2 Documentation](https://docs.ros.org/en/humble/)
-* [ROS 2 Tutorials](https://docs.ros.org/en/humble/Tutorials.html)
-
-## TurtleBot3
-
-* [TurtleBot3 e-Manual](https://emanual.robotis.com/docs/en/platform/turtlebot3/)
-* [TurtleBot3 Simulation](https://emanual.robotis.com/docs/en/platform/turtlebot3/simulation/)
-* [TurtleBot3 SLAM](https://emanual.robotis.com/docs/en/platform/turtlebot3/slam_simulation/)
-* [TurtleBot3 Navigation](https://emanual.robotis.com/docs/en/platform/turtlebot3/nav_simulation/)
-
-## ROS 2 Packages
-
-* [ROS 2 GitHub](https://github.com/ros2)
-* [TurtleBot3 GitHub](https://github.com/ROBOTIS-GIT/turtlebot3)
-* [TurtleBot3 Simulation GitHub](https://github.com/ROBOTIS-GIT/turtlebot3_simulations)
-
----
-
-# 📌 Important Note About ROS 2 Distributions
-
-This workshop is written primarily for:
-
-```text
-Ubuntu 22.04
-ROS 2 Humble
-```
-
-ROS 2 commands and TurtleBot3 package workflows can differ between ROS distributions.
-
-If you use another ROS 2 distribution, verify the corresponding official documentation before copying commands directly.
-
----
-
-# 🏁 Workshop Completion
-
-If you successfully completed this workshop, you have gone from:
-
-```text
-"I don't know ROS 2"
-```
-
-to:
-
-```text
-ROS 2
- │
- ├── Nodes
- ├── Topics
- ├── Services
- ├── Actions
- ├── Parameters
- ├── Messages
- ├── Packages
- ├── colcon
- │
- ├── Python Nodes
- │
- ├── TurtleBot3
- ├── Gazebo
- ├── RViz2
- ├── TF
- ├── LiDAR
- │
- ├── SLAM
- ├── Mapping
- │
- └── Navigation
-```
-
-And most importantly:
-
-> **You now have the foundation to start building real ROS 2 robotic systems.**
-
----
-
-## ⭐ If this workshop helped you
-
-Consider giving the repository a ⭐ on GitHub and contributing improvements, examples and new practical exercises.
-
-**Happy Robotics! 🤖**
+**Technologies:** ROS 2 Humble · Ubuntu 22.04 · WSL2 · Gazebo Classic · TurtleBot3 · RViz2 · SLAM Toolbox · Nav2 · TF2
